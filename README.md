@@ -9,7 +9,7 @@ SNES gampepad adapter to USB.
 
 ATmega 32U4 has a hardware support for fullspeed USB, thus <a href="https://wiki.archlinux.org/title/mouse_polling_rate">polling rate 1000Hz</a> is not an issue for that chip.
 
-You can use the <a href="https://github.com/mistepien/segapad2usb/tree/main/production">gerber file<a> to order the PCB.
+You can use the <a href="https://github.com/mistepien/snespad2usb/tree/main/production">gerber file<a> to order the PCB.
 
 Attached <a href="https://github.com/mistepien/snespad2usb/tree/main/firmware">code</a> uses port registers so that is quite efficient. The code was tested with <a href="https://www.8bitdo.com/sn30-wireless-for-original-snes-sfc/">SN30 2.4g wireless gamepad for original SNES/SFC</a> and original SNES and SFC gamepads. Everything works flawless!
 
