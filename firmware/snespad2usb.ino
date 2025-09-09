@@ -10,7 +10,8 @@ Joystick_ Joystick(JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_JOYSTICK,
                    false, false, false);  // No accelerator, brake, or steering
 
 void setup() {
-  bitSet(DDRE, 6); bitClear(PORTE, 6); //STATUS LED - OFF
+  bitSet(DDRE, 6);
+  bitClear(PORTE, 6);  //STATUS LED - OFF
   snes.begin(1, 2, 3);
 
   Joystick.setXAxisRange(-1, 1);
@@ -35,8 +36,9 @@ void setup() {
   bitClear(DDRD, 5);
   bitClear(DDRB, 0);
 
-  bitSet(DDRC, 6); bitClear(PORTC, 6); //CTL-ON LED - OFF
-  bitSet(PORTE, 6); //STATUS LED - ON
+  bitSet(DDRC, 6);
+  bitClear(PORTC, 6);  //CTL-ON LED - OFF
+  bitSet(PORTE, 6);    //STATUS LED - ON
 
   bitClear(DDRD, 0);
   bitSet(PORTD, 0);
@@ -52,7 +54,7 @@ byte DPAD_RIGHT;
 void button(byte btn, bool btn_state) {
   switch (btn) {
     case SNES_CTL_ON:
-      bitWrite(PORTC, 6, btn_state); //CTL-ON LED
+      bitWrite(PORTC, 6, btn_state);  //CTL-ON LED
       break;
     case SNES_BTN_SELECT:
       Joystick.setButton(0, btn_state);
@@ -93,37 +95,38 @@ void button(byte btn, bool btn_state) {
   }
 }
 
-word current_state = 0;
-word prev_state = 0;
+constexpr byte hotkey_debounce_time_MS = 100;
 
+void send_state(word _current_state) {
+  static word prev_state;
+  word changed_state = prev_state ^ _current_state;
+  if (changed_state) {
+    prev_state = _current_state;
+    for (byte index = 0; index < 13; index++) {
+      if (bitRead(changed_state, index)) {
+        button(index, bitRead(_current_state, index));
+      }
+    }
+    Joystick.setYAxis(DPAD_DOWN - DPAD_UP);
+    Joystick.setXAxis(DPAD_RIGHT - DPAD_LEFT);
+  }
 
-constexpr int hotkey_debounce_time_MS = 100;
+  static unsigned long prev_hotkey_time;
+  static bool prev_hotkey_state;
+  bool current_hotkey_state = 1 ^ bitRead(PIND, 0);
+  if (current_hotkey_state ^ prev_hotkey_state) {
+    unsigned long current_hotkey_time = millis();
+    if (current_hotkey_time - prev_hotkey_time > hotkey_debounce_time_MS) {
+      prev_hotkey_state = current_hotkey_state;
+      prev_hotkey_time = current_hotkey_time;
+      Joystick.setButton(8, current_hotkey_state);
+    }
+  }
+  Joystick.sendState();  //ONE common send.State for AXISES AND BUTTONS
+}
+
 void loop() {
   while (true) {
-    current_state = snes.getState();
-    word changed_state = prev_state ^ current_state;
-    if (changed_state) {
-      prev_state = current_state;
-      for (byte index = 0; index < 13; index++) {
-        if (bitRead(changed_state, index)) {
-          button(index, bitRead(current_state, index));
-        }
-        Joystick.setYAxis(DPAD_DOWN - DPAD_UP);
-        Joystick.setXAxis(DPAD_RIGHT - DPAD_LEFT);
-      }
-    }
-
-    static unsigned long prev_hotkey_time;
-    static bool prev_hotkey_state;
-    bool current_hotkey_state = 1 ^ bitRead(PIND, 0);
-    if ( current_hotkey_state ^ prev_hotkey_state ) {
-      unsigned long current_hotkey_time = millis();
-      if (current_hotkey_time - prev_hotkey_time > hotkey_debounce_time_MS) {
-        prev_hotkey_state = current_hotkey_state;
-        prev_hotkey_time = current_hotkey_time;
-        Joystick.setButton(8, current_hotkey_state);
-      }
-    }
-    Joystick.sendState();  //ONE common send.State for AXISES AND BUTTONS
+    send_state(snes.getState());
   }
 }
